@@ -1,8 +1,9 @@
-# TODO: clean up and document 
+# TODO: clean up and document
 
 import pandas as pd
 import json
 import networkx as nx
+import motiffinder as mf
 CSV_FILE = "ecoli_tn_genes.csv"
 ADJLIST_JSON = "ecoli_ts_network.json"
 
@@ -11,7 +12,7 @@ def csv_to_adj_list(csv_file_name):
     END = 'gene'
     DIRECTION = 'effect'
     CONFIDENCE = 'ev_level'
-    
+
     data = pd.read_csv(csv_file_name)
 
     adj_list = {}
@@ -63,9 +64,15 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
     adj_list = open_adj_list_json(ADJLIST_JSON)
     graph = default_adj_list_to_graph(adj_list)
-    print(graph.edges['cra','pdhR']) # verify infinity is present
-    print(graph.edges['sgrR','sroA']) # verify 2.0 is present
-    subgraph = graph.subgraph(['cra','pdhR','sgR','sroA','thiP'])
-    nx.draw(subgraph,with_labels=True,edge_color='gray')
+    adj_csv = pd.read_csv("ecoli_tn_genes.csv")
+    transcription_factors = adj_csv[adj_csv.ev_level > 1].TF.unique()
+    SIMS = mf.find_SIMS(graph, transcription_factors)
+    SIMS = list(filter(lambda x: len(x) > 1, SIMS))
+    SIMS = list(sorted(SIMS, key = lambda x: len(x)))
+    nx.draw(nx.subgraph(graph, SIMS[-1]), with_labels=True)
     plt.show()
-
+    # print(graph.edges['cra','pdhR']) # verify infinity is present
+    # print(graph.edges['sgrR','sroA']) # verify 2.0 is present
+    # subgraph = graph.subgraph(['cra','pdhR','sgR','sroA','thiP'])
+    # nx.draw(subgraph,with_labels=True,edge_color='gray')
+    # plt.show()
