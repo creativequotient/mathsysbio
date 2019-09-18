@@ -86,7 +86,7 @@ def find_terminal_nodes(graph, indegree=1):
 
 # TODO: debug again. Only found 1 DOR. Suspect there are some edge cases I am missing.
 
-def find_DORs(graph):
+def find_DORs(graph, group = False):
     """
     the bottom row (genes being regulated) in a DOR have an identical set of predecessors and cannot have self loop
     
@@ -111,9 +111,42 @@ def find_DORs(graph):
         if regulators not in regulator_regulon_map:
             regulator_regulon_map[regulators] = []
         regulator_regulon_map[regulators].append(node)
-    # pprint.pprint(regulator_regulon_map) 
-    DOR_list = []
-    
+   
+    DORs = []
+
+    for regulators, regulon in regulator_regulon_map.items():
+        regulon = tuple(regulon)
+        exclude = False
+        
+        if len(regulon) <= 1:
+            continue
+        # check regulators are not regulating each other
+        regulators_subgraph = graph.subgraph(regulators)
+        
+        for edge in regulators_subgraph.edges:
+            if edge[0] != edge[1]:
+                exclude = True
+                break
+        if exclude:
+            continue
+        # check regulons are not regulating regulators also
+        for gene in regulon:
+            for reg in regulators:
+                if graph.has_edge(gene,reg):
+                    exclude = True
+                    break
+            if exclude:
+                break
+        if exclude:
+            continue
+        
+        if group:
+            DORs.append(regulators + regulon)
+        else:
+            DORs.append((regulators,regulon))
+
+    return DORs
+    """ 
     for regulators, regulon in regulator_regulon_map.items():
         if len(regulon) <= 1:
             continue
@@ -135,7 +168,7 @@ def find_DORs(graph):
         DOR_list.append((tuple(regulators), tuple(regulon)))
 
     return DOR_list
-
+    """
 if __name__ == "__main__":
     graph = nx.DiGraph()
     graph.add_edge("TF1","A")

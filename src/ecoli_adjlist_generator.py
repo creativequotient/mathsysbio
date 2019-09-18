@@ -65,7 +65,7 @@ if __name__ == '__main__':
     adj_list = open_adj_list_json(ADJLIST_JSON)
     graph = default_adj_list_to_graph(adj_list)
     adj_csv = pd.read_csv("ecoli_tn_genes.csv")
-    transcription_factors = adj_csv[adj_csv.ev_level > 1].TF.unique()
+    transcription_factors = adj_csv[adj_csv.ev_level > 1].tf.unique()
     SIMS = mf.find_SIMS(graph, transcription_factors)
     SIMS = list(filter(lambda x: len(x) > 1, SIMS))
     SIMS = list(sorted(SIMS, key = lambda x: len(x)))
