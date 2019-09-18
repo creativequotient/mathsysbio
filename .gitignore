@@ -1,3 +1,4 @@
 .ipynb_checkpoints
 stats/
 graphs/
+__pycache__/
