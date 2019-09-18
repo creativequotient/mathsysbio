@@ -56,7 +56,7 @@ def open_adj_list_json(filename):
         adj_list = json.load(f)['DATA']
     return adj_list
 
-def default_adj_list_to_graph(adjlist):
+def default_adj_list_to_graph(adj_list):
     return adj_list_to_graph(adj_list,  lambda e : e[2] == 2 or e[2] == float('inf'))
 
 import matplotlib.pyplot as plt
