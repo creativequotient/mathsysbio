@@ -84,6 +84,58 @@ def find_terminal_nodes(graph, indegree=1):
 
     return terminal_nodes
 
+# TODO: debug again. Only found 1 DOR. Suspect there are some edge cases I am missing.
+
+def find_DORs(graph):
+    """
+    the bottom row (genes being regulated) in a DOR have an identical set of predecessors and cannot have self loop
+    
+    get list of predecessors for every node, excluding nodes with a self loop.
+    """
+
+    nodes = set(map(lambda e: e[0], graph.edges)) # nodes with incoming edges
+    regulator_regulon_map = {} # regulators are predecessors
+    for node in nodes:
+        regulators = tuple(sorted(graph.predecessors(node)))
+        
+        # and skip nodes with only 1 regulator (then it's a potential SIM) or no regulators
+        if len(regulators) <= 1:
+            continue
+
+        # don't allow self loops
+        if node in regulators:
+            if regulators in regulator_regulon_map:
+                del regulator_regulon_map[regulators]
+            continue
+
+        if regulators not in regulator_regulon_map:
+            regulator_regulon_map[regulators] = []
+        regulator_regulon_map[regulators].append(node)
+    # pprint.pprint(regulator_regulon_map) 
+    DOR_list = []
+    
+    for regulators, regulon in regulator_regulon_map.items():
+        if len(regulon) <= 1:
+            continue
+        exclude = False
+        # check regulators do not regulate each 
+        for reg in regulators:
+            for successor in graph.successors(reg):
+                if successor != reg and successor in regulators:
+                    # regulators are regulating each other, so not a DOR
+                    exclude = True
+                    break
+            # check regulons are not regulating regulator
+            for gene in regulon:
+                if graph.has_edge(gene, reg):
+                    exclude = True
+                    break
+        if exclude:
+            continue
+        DOR_list.append((tuple(regulators), tuple(regulon)))
+
+    return DOR_list
+
 if __name__ == "__main__":
     graph = nx.DiGraph()
     graph.add_edge("TF1","A")
