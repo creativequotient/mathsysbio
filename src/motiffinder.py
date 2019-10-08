@@ -29,6 +29,20 @@ def find_ffl(graph):
     return counter
 
 def find_SIMS(graph, transcription_factors, group=True):
+    """Returns all the SIMs in the graph, which includes "SIMs" with 1 gene.
+
+    Args:
+        graph (NetworkX.DiGraph)
+        transcription_factors : list of names of TFs in the graph (ie. nodes with out 
+            degree >= 1)
+        group (bool) : whether to return a list of SIMs, where each SIM is a flattened 
+            list of the genes followed by the TF (True), or a dict indexed by TF (False)
+
+    Returns:
+        The SIMs in this graph (including "SIMs" with 1 gene) as either a list of dict
+        (see the group arg)
+    """
+
     # Get all nodes from graph
     nodes = graph.nodes()
 
@@ -84,13 +98,23 @@ def find_terminal_nodes(graph, indegree=1):
 
     return terminal_nodes
 
-# TODO: debug again. Only found 1 DOR. Suspect there are some edge cases I am missing.
-
 def find_DORs(graph, group = False):
-    """
-    the bottom row (genes being regulated) in a DOR have an identical set of predecessors and cannot have self loop
-    
-    get list of predecessors for every node, excluding nodes with a self loop.
+    """Returns a list of all the complete (fully connected) DORs in the graph.
+
+    Basis of algorithm:
+    1. the bottom row (genes being regulated) in a DOR have an identical set 
+       of predecessors and cannot have self loop
+    2. get list of predecessors for every node, excluding nodes with a self loop.
+
+    Args:
+        graph (NetworkX.DiGraph)
+        group (bool) : True to return each DOR as a flat tuple of regulators 
+            followed by regulons False to return each DOR as a nested tuple of 
+            (regulators, regulons)
+
+    Returns:
+        a list of fully connected DORs in the graph (see group argument for 
+        details on the format of each DOR), or an empty list if there are none
     """
 
     nodes = set(map(lambda e: e[0], graph.edges)) # nodes with incoming edges
@@ -146,29 +170,7 @@ def find_DORs(graph, group = False):
             DORs.append((regulators,regulon))
 
     return DORs
-    """ 
-    for regulators, regulon in regulator_regulon_map.items():
-        if len(regulon) <= 1:
-            continue
-        exclude = False
-        # check regulators do not regulate each 
-        for reg in regulators:
-            for successor in graph.successors(reg):
-                if successor != reg and successor in regulators:
-                    # regulators are regulating each other, so not a DOR
-                    exclude = True
-                    break
-            # check regulons are not regulating regulator
-            for gene in regulon:
-                if graph.has_edge(gene, reg):
-                    exclude = True
-                    break
-        if exclude:
-            continue
-        DOR_list.append((tuple(regulators), tuple(regulon)))
 
-    return DOR_list
-    """
 if __name__ == "__main__":
     graph = nx.DiGraph()
     graph.add_edge("TF1","A")
