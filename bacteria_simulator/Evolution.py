@@ -44,6 +44,8 @@ class Evolution(object):
         self.weight = self.evolve(self.inverse(self.weight) + self.error())
         if (self.weight > 1):
             self.weight = 1
+        if (self.weight < 0):
+            self.weight = 0
         return self.weight
 
 if __name__ == "__main__":
