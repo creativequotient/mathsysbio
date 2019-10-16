@@ -18,7 +18,7 @@ def make_basic_bacteria(id):
             'atp' : atp
         }
 
-    bac = Bacteria(id, min_atp = 30, initial_atp = 65)
+    bac = Bacteria(id, min_atp = 0, initial_atp = 100)
     
     foods = ('glucose', 'sucrose', 'lactose')
 
@@ -127,6 +127,12 @@ class Bacteria(object):
         cloned_cell = copy.deepcopy(self)
         cloned_cell.id = id
         cloned_cell.generation += 1
+
+        # half amount of all nodes in this and parent
+        for cell in (self, cloned_cell):
+            for node_name in cell.graph.nodes:
+                cell.graph.nodes[node_name]['amount'] /= 2
+
         return cloned_cell
 
     def evolve(self):
