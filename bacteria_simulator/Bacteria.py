@@ -1,107 +1,134 @@
 import networkx as nx
 import copy
+from Evolution import Identity
 
+def make_basic_bacteria(id):
+    bac = Bacteria(id, min_atp = 5, initial_atp = 10)
+    
+    foods = ('glucose', 'sucrose', 'lactose')
+
+    # TODO: tweak initial values, add interactions btw different transporters/enz
+    # assumption : amount of food is limiting, enzymes/transporters are in excess
+    for food in foods:
+        bac.add_node(food)
+        bac.add_node('transported_' + food)
+        bac.add_node('enz_' + food + '_complex')
+        bac.add_edge(food, 'transported_' + food, 0.5, atp = 1)
+        bac.add_edge('transported_' + food, 'enz_' + food + '_complex', 0.5, atp = 1)
+        bac.add_edge('enz_' + food + '_complex', 'atp', 0.5)
+
+    return bac
 
 class Bacteria(object):
-    def __init__(this, ID, generation, min_atp, initial_atp):
+    def __init__(self, id, min_atp, initial_atp):
         """
         Initalize single Bacterial cell with the given ATP threshold for survival (min_atp) 
         and initial amount of ATP (intitial_atp)
         Only the ATP node is created
-
-        Use add_product_node(), add_node() and add_edge() to add other nodes and edges.
         """
-        this.graph = nx.DiGraph()
-        this.graph.add_node('atp', amount=initial_atp)
-        this.min_atp = min_atp
-        this.initial_atp = initial_atp
+        self.graph = nx.DiGraph()
+        self.graph.add_node('atp', amount=initial_atp)
+        self.min_atp = min_atp
+        self.initial_atp = initial_atp
 
-        this.ID = ID
-        this.timestep = 0
-        this.generation = generation
+        self.id = id
+        self.timestep = 0
+        self.generation = 0
 
-    ## Functions to add nodes/edges to the graph
-    def add_product_node(this, name, initial_amount, atp_needed):
+    def add_node(self, name, initial_amount = 0, description = ''):
+        self.graph.add_node(name, amount = initial_amount, descripton = '')
+
+    def add_edge(self, src, dest, weight, make_evolution_cls = Identity, atp = 0, description = ''):
+        if src not in self.graph or dest not in self.graph:
+            raise ValueError('src or dest node has not been created')
+        self.graph.add_edge(src, dest, weight=weight, atp_needed = atp, evolution = make_evolution_cls(weight), description = description)
+
+    def survive(self, food):
         """
-        Add a node a gene product and hence requires ATP to be synthesized
+        Determine if cell survives self generation given the quantities of food available
 
         Args:
-            initial_amount (float) : initial amount of this gene product 
-            atp_needed (float) : amount of ATP needed to produce each unit of this gene product
-                (would it be better to associate the atp_needed with the pathway (ie. edge) 
-                instead??? as different pathways may have different ATP requirements)
+            food : dict of food source to amount
         """
-        this.graph.add_node(name, amount=initial_amount, atp_fn=lambda produced: produced * atp_needed)
-
-    ## Add non gene product nodes that don't need ATP (ie. food source nodes)
-    def add_node(this, name, initial_amount):
-        this.graph.add_node(name, amount=initial_amount)
-        # print(this.graph.nodes[name]['amount'])
-
-    def add_edge(this, tf, gene, weight, evolve_fn):
-        if tf not in this.graph or gene not in this.graph:
-            raise ValueError('tf or gene node has not been created')
-        this.graph.add_edge(tf, gene, weight=weight, evolve_fn=evolve_fn)
-        # print(this.graph.edges.data())
-
-    ## Determine if cell survives this generation given the quantities of food available
-    ## food is a dict of food_source : amount
-    def survive(this, food):
         for (food_src, amount) in food.items():
-            this.graph.nodes[food_src] = amount
-            # this.graph.add_node(food_src,amount=amount)
-        this._next_timestep()  # update the graph
+            self.graph.nodes[food_src]['amount'] = amount
+        self.next_timestep()
 
-        for food_src in food:
-            this.graph.nodes[food_src]['amount'] = 0
+        # reset food amount
+        # for food_src in food:
+            # self.graph.nodes[food_src]['amount'] = 0
 
-        return this.graph.nodes['atp']['amount'] >= this.min_atp
+        return self.graph.nodes['atp']['amount'] >= self.min_atp
 
     ## Increment timestep by 1, update graph
-    def _next_timestep(this):
-        this.timestep += 1
+    def next_timestep(self):
+        self.timestep += 1
 
         # update the graph
         increase_by = {}
-        for (tf, gene, weight) in this.graph.edges.data('weight'):
+        for (tf, gene, data) in self.graph.edges.data():
             if gene not in increase_by:
                 increase_by[gene] = 0
-            gene_produced = weight * this.graph.nodes[tf]['amount']
-            # print("gene produced =" + str(gene_produced))
+            gene_produced = data['weight'] * self.graph.nodes[tf]['amount']
             increase_by[gene] += gene_produced
 
-            # decrease ATP if gene product was produced
-            if gene_produced > 0 and this._is_product(gene):
-                this.graph.nodes['atp']['amount'] -= this.graph.nodes[gene]['atp_fn'](gene_produced)
+            self.graph.nodes['atp']['amount'] -= data['atp_needed'] * gene_produced
 
         # increase the amounts for each node
         for (node, amount) in increase_by.items():
             if amount > 0:
                 # it's not possible for a TF to actually decrease the amount of protein
                 # only decrease its rate of production (?)
-                this.graph.nodes[node]['amount'] += amount
-        # print(increase_by)
+                self.graph.nodes[node]['amount'] += amount
 
-    # it's a gene product (ptn/rna) if it has an atp function
-    def _is_product(this, gene):
-        return 'atp_fn' in this.graph.nodes[gene]
+    def clone(self, id):
+        """Clone cell. Inherits age and amounts of nodes."""
 
-    ## Clone cell (inherits age and amounts of proteins)
-    def clone(this):
-        cloned_cell = copy.copy(this)
-        cloned_cell.ID += 1
+        cloned_cell = copy.deepcopy(self)
+        cloned_cell.id = id
+        cloned_cell.generation += 1
         return cloned_cell
 
-    ## Evolve all edge in this cell
-    def evolve(this):
-        for (src, dest, evolve_fn) in this.graph.edges.data('evolve_fn'):
-            this.graph.edges[src, dest]['weight'] = evolve_fn(this.graph.edges[src, dest]['weight'])
+    def evolve(self):
+        """Evolves (ie. possibly mutates) weights of all edges in this bacterium's graph"""
 
-    def __str__(this):
-        string = f'Bacteria {this.ID}. Generation: {this.generation}. Age: {this.timestep}. ATP threshold: {this.min_atp}'
-        string += f"\nCurrent ATP: {this.graph.nodes['atp']['amount']}\n"
-        for node_name in sorted(this.graph.nodes):
+        for (src, dest, evolution) in self.graph.edges.data('evolution'):
+            self.graph.edges[src, dest]['weight'] = evolution.getMutated()
+
+    def divide(self, id):
+        """Equivalent to this.clone(id) and using evolve() on the resulting daughter cell."""
+        daughter = self.clone(id)
+        daughter.evolve()
+        return daughter
+
+    def __str__(self):
+        string = f'Bacteria {self.id}. Generation: {self.generation}. Age: {self.timestep}. ATP threshold: {self.min_atp}'
+        string += f"\nCurrent ATP: {self.graph.nodes['atp']['amount']}\n"
+        for node_name in sorted(self.graph.nodes):
             if node_name == 'atp':
                 continue
-            string += f"{node_name}: {this.graph.nodes[node_name]['amount']}\n"
+            string += f"{node_name}: {self.graph.nodes[node_name]['amount']}\n"
         return string
+
+if __name__ == '__main__':
+    bac1 = make_basic_bacteria(1)
+    print(bac1)
+    print(bac1.graph.nodes.data())
+    print(bac1.graph.edges.data())
+    print()
+
+    bac2 = bac1.divide(2)
+    print(bac2)
+    
+    print(bac1 is bac2)
+    print(bac1.graph is bac2.graph)
+    print(bac1.graph.nodes['glucose'] is bac2.graph.nodes['glucose'])
+    print()
+
+    food = {'glucose' : 5, 'sucrose' : 10, 'lactose' : 3}
+    print('Food', food)
+    print(bac1.survive(food))
+    print(bac1)
+    for i in range(4):
+        bac1.next_timestep()
+        print(bac1)
