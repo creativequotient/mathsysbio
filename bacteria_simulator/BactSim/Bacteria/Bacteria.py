@@ -1,6 +1,6 @@
 import networkx as nx
 import copy
-from Evolution import Identity
+from BactSim.Evolution import Identity
 
 def make_basic_bacteria(id):
     bac = Bacteria(id, min_atp = 5, initial_atp = 10)

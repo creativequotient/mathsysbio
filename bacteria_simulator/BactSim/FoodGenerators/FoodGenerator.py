@@ -13,9 +13,9 @@ class FoodGenerator(object):
         Get available food at current generation
         :return: Dictionary of food, value pairs
         """
-        self.food["glucose"] = 3 * math.sin((self.generation - 3)/100) + 3  # to generate the amount of glucose in generation self.generation
-        self.food["lactose"] = 3 * math.sin((self.generation - 5)/100) + 3  # to generate the amount of lactose in generation self.generation
-        self.food["sucrose"] = 3 * math.sin((self.generation - 7)/100) + 3  # to generate the amount of sucrose in generation self.generation
+        self.food["glucose"] = 100 * math.sin((self.generation - 3)/100) + 100  # to generate the amount of glucose in generation self.generation
+        self.food["lactose"] = 100 * math.sin((self.generation - 5)/100) + 100  # to generate the amount of lactose in generation self.generation
+        self.food["sucrose"] = 100 * math.sin((self.generation - 7)/100) + 100  # to generate the amount of sucrose in generation self.generation
         self.generation += 1
         return self.food  # returns a dictionary of amounts of each type of sugar
 
