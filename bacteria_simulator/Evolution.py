@@ -48,16 +48,7 @@ class Evolution(object):
             self.weight = 0
         return self.weight
 
-class Identity(object):
-    """Evolution class for edges we don't want to allow changes in weight. Useful for testing"""
-
-    def __init__(self, initial):
-        self.weight = initial
-
-    def getMutated(self):
-        return self.weight
-
 if __name__ == "__main__":
-    evo = Evolution(0.5, 0.001) # Initialize Evolution object with initial weight and SD
+    evo = Evolution(0.5, 0.01) # Initialize Evolution object with initial weight and SD
     for i in range(50):
         print(evo.getMutated()) # Call .getMutated() to get next weight
