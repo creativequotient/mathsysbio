@@ -17,7 +17,7 @@ class Simulator(object):
         """
         new_population = self.replicate()
         available_food = self.calculate_food(len(new_population))
-        self.bacteria = list(filter(lambda x: x.survive(available_food)))
+        self.bacteria = list(filter(lambda x: x.survive(available_food), new_population))
 
     def replicate(self):
         """
@@ -28,7 +28,8 @@ class Simulator(object):
         for bacteria in self.bacteria:
             new_population.append(bacteria)
             self.total_population += 1
-            daughter_cell = bacteria.clone().evolve()
+            daughter_cell = bacteria.clone(self.total_population)
+            daughter_cell.evolve()
             new_population.append(daughter_cell)
         return new_population
 

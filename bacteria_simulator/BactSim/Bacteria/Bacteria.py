@@ -1,6 +1,6 @@
 import networkx as nx
 import copy
-from Evolution import Evolution
+from BactSim.Evolution import Evolution
 
 def make_basic_bacteria(id):
     def make_edge_cfg(weight, scale = 1, atp = 0, evo_sd = 0):
@@ -173,10 +173,10 @@ if __name__ == '__main__':
     bac2 = bac1.divide(2)
     print(bac2)
     
-    # print(bac1 is bac2)
-    # print(bac1.graph is bac2.graph)
-    # print(bac1.graph.nodes['glucose'] is bac2.graph.nodes['glucose'])
-    # print()
+    print(bac1 is bac2)
+    print(bac1.graph is bac2.graph)
+    print(bac1.graph.nodes['glucose'] is bac2.graph.nodes['glucose'])
+    print()
 
     food = {'glucose' : 5, 'sucrose' : 10, 'lactose' : 3}
     print('Food', food)
