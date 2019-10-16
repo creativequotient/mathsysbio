@@ -1,1 +1,2 @@
 from BactSim.FoodGenerators.FoodGenerator import FoodGenerator
+from BactSim.FoodGenerators.Static import StaticGenerator
