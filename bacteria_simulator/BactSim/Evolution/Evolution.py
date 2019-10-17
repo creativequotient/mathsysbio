@@ -48,7 +48,14 @@ class Evolution(object):
             self.weight = 0
         return self.weight
 
+    def __str__(self):
+        return f'SD: {self.sd} Current weight: {self.weight} Initial weight: {self.initial}'
+
+    def __repr__(self):
+        return f'Evolution({self})'
+
 if __name__ == "__main__":
     evo = Evolution(0.5, 0.001) # Initialize Evolution object with initial weight and SD
+    print(evo)
     for i in range(50):
         print(evo.getMutated()) # Call .getMutated() to get next weight
