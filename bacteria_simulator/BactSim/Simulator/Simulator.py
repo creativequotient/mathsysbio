@@ -26,6 +26,8 @@ class Simulator(object):
         """
         new_population = []
         for bacteria in self.bacteria:
+            if not bacteria.can_reproduce():
+                continue
             new_population.append(bacteria)
             self.total_population += 1
             daughter_cell = bacteria.clone(self.total_population)
