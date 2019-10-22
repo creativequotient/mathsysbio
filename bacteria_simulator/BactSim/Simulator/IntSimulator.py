@@ -1,4 +1,6 @@
 import random
+from multiprocessing import Pool
+import functools
 
 class IntSimulator(object):
     """IntSimulator only allocates integer food values to bacteria as evenly as possible.
@@ -21,13 +23,19 @@ class IntSimulator(object):
         Move forward by 1 generation/time-step
         :returns: Update self.bacteria with new population at next time-step
         """
-        new_population = self.replicate()
+        if (len(self.bacteria) < 2000):
+            new_population = self.replicate()
+        else:
+            new_population = replicate_multicore(self.bacteria)
         food_alloc = self.food_allocation(len(new_population))
         self.bacteria = []
         for i, bac in enumerate(new_population):
             current_food = {}
             for food, lst in food_alloc.items():
                 current_food[food] = lst[i]
+            #print(current_food)
+            # print(bac)
+            # print(bac.survive(current_food))
             if bac.survive(current_food):
                 self.bacteria.append(bac)
 
@@ -38,14 +46,14 @@ class IntSimulator(object):
         """
         new_population = []
         for bacteria in self.bacteria:
+            #print(bacteria)
             if not bacteria.can_reproduce():
                 continue
             new_population.append(bacteria)
             self.total_population += 1
-            daughter_cell = bacteria.clone(self.total_population)
-            daughter_cell.evolve()
-            new_population.append(daughter_cell)
+            new_population.append(bacteria.divide(self.total_population))
         return new_population
+
 
     def food_allocation(self, population_size):
         """Generates food allocation scheme
@@ -60,7 +68,20 @@ class IntSimulator(object):
                 lst[i] += 1
             random.shuffle(lst)
             available_food[food] = lst
+        #print(available_food)
         return available_food
+
+def func(bacteria):
+    if not bacteria.can_reproduce():
+        return [bacteria]
+    else:
+        return [bacteria, bacteria.divide(0)]
+
+def replicate_multicore(bacteria_pop, cores = 8):
+    pool = Pool(processes=cores)
+    output = pool.map(func, bacteria_pop)
+    output = functools.reduce(lambda a, b: a + b, output)
+    return output
 
 # to run this file as a script:
 # run BactSim.Simuator.IntSimulator from the bacteria_simulator directory

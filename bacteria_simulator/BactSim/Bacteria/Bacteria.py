@@ -18,28 +18,28 @@ def make_basic_bacteria(id):
             'atp' : atp
         }
 
-    bac = Bacteria(id, survival_atp = 1, repro_atp = 15, initial_atp = 100)
-    
+    bac = Bacteria(id, survival_atp = 1, repro_atp = 3, initial_atp = 20, max_amount_per_step = 2)
+
     foods = ('glucose', 'sucrose', 'lactose')
 
     cfgs = {
         'glucose' : make_all_edge_cfgs(
-            make_edge_cfg(0.8, evo_sd = 0.2, atp = 0.2),
-            make_edge_cfg(0.8, evo_sd = 0.2, atp = 0.2),
-            make_edge_cfg(0.8, evo_sd = 0.2, scale = 6)
+            make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
+            make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
+            make_edge_cfg(0.5, evo_sd = 0.2, scale = 1)
         ),
         'sucrose': make_all_edge_cfgs(
-            make_edge_cfg(0.000000000001, evo_sd = 0.2, atp = 0.2),
-            make_edge_cfg(0.000000000001, evo_sd = 0.2, atp = 0.2),
-            make_edge_cfg(0.000000000001, evo_sd = 0.2, scale = 6)
+            make_edge_cfg(0.000000000001, evo_sd = 0.3, atp = 0.2),
+            make_edge_cfg(0.000000000001, evo_sd = 0.3, atp = 0.2),
+            make_edge_cfg(0.000000000001, evo_sd = 0.3, scale = 1)
         ),
         'lactose' : make_all_edge_cfgs(
-            make_edge_cfg(0.7, evo_sd = 0.2, atp = 0.2),
             make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
-            make_edge_cfg(0.5, evo_sd = 0.2, scale = 6)
+            make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
+            make_edge_cfg(0.5, evo_sd = 0.2, scale = 1)
         )
     }
-   
+
     # TODO: add interactions btw different transporters/enz
     # assumption : amount of food is limiting, enzymes/transporters are in excess
     for food in foods:
@@ -59,7 +59,7 @@ def make_basic_bacteria(id):
 class Bacteria(object):
     """
     A class representing a single bacterial cell.
-   
+
     Attributes
     -----------
     Access the attributes of a bacteria using `bact.attribute_name` (eg. `bact.id`)
@@ -150,7 +150,7 @@ class Bacteria(object):
         self.repro_atp = repro_atp
         self.initial_atp = initial_atp
         self.max_amount_per_step = max_amount_per_step
-       
+
         self.id = id
         self.timestep = 0
         self.generation = 0
@@ -158,7 +158,7 @@ class Bacteria(object):
         self.last_food = None
 
     ## Adding nodes and edges ##
-   
+
     def add_node(self, name, initial_amount = 0, description = ''):
         self.graph.add_node(name, amount = initial_amount, description = '')
 
@@ -170,10 +170,18 @@ class Bacteria(object):
     ## Simulation functions: survival and reproduction ##
 
     def is_alive(self):
-        return self.get_node('atp')['amount'] >= self.survival_atp
+        try:
+            #print(self.get_node('atp')['amount'][0])
+            return self.get_node('atp')['amount'][0] >= self.survival_atp
+        except Exception as e:
+            #print(self.get_node('atp')['amount'])
+            return self.get_node('atp')['amount'] >= self.survival_atp
 
     def can_reproduce(self):
-        return self.get_node('atp')['amount'] >= self.repro_atp
+        try:
+            return self.get_node('atp')['amount'][0] >= self.repro_atp
+        except Exception as e:
+            return self.get_node('atp')['amount'] >= self.repro_atp
 
     def survive(self, food, reset_food = False):
         """
@@ -188,6 +196,10 @@ class Bacteria(object):
         for (food_src, amount) in food.items():
             self.graph.nodes[food_src]['amount'] = amount
         self.next_timestep()
+        self.next_timestep()
+        self.next_timestep()
+
+        #print(self)
 
         # reset food amount
         if reset_food:
@@ -216,7 +228,9 @@ class Bacteria(object):
             increase_by[dest] += dest_produced
 
             self.graph.nodes['atp']['amount'] -= data['atp_needed'] * dest_produced
-
+            if self.graph.nodes['atp']['amount'] < 0:
+                self.graph.nodes['atp']['amount'] = 0
+        #print(increase_by)
         # increase the amounts for each node
         for (node, amount) in increase_by.items():
             if amount > 0:
@@ -259,7 +273,7 @@ class Bacteria(object):
         return daughter
 
     ## Getting node amounts and edge weights ##
-   
+
     def get_amount(self, node):
         """
         Get the amount of a node.
@@ -350,7 +364,7 @@ class Bacteria(object):
             return d
 
     ## Displaying functions (AKA functions that return strings describing the bacteria) ##
-   
+
     def edges_str(self):
         """Returns a string describing all the edges in this bacteria"""
 
@@ -381,7 +395,7 @@ class Bacteria(object):
         return string
 
     __repr__ = __str__
-   
+
 
 if __name__ == '__main__':
     bac1 = make_basic_bacteria(1)
