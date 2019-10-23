@@ -13,14 +13,16 @@ class FoodGenerator(object):
         Get available food at current generation
         :return: Dictionary of food, value pairs
         """
-        self.food["glucose"] = 100 * math.sin((self.generation - 3)/100) + 100  # to generate the amount of glucose in generation self.generation
-        self.food["lactose"] = 100 * math.sin((self.generation - 5)/100) + 100  # to generate the amount of lactose in generation self.generation
-        self.food["sucrose"] = 100 * math.sin((self.generation - 7)/100) + 100  # to generate the amount of sucrose in generation self.generation
+        rad = self.generation * math.pi / 180 / 10
+        self.food["glucose"] = 500 * math.sin(rad) + 500 #+ 500  # to generate the amount of glucose in generation self.generation
+        self.food["lactose"] = 500 * math.sin(rad + math.pi) + 500#+ 500  # to generate the amount of lactose in generation self.generation
+        self.food["sucrose"] = 500 * math.sin(rad + 1.5 * math.pi) + 500   # to generate the amount of sucrose in generation self.generation
         self.generation += 1
         return self.food  # returns a dictionary of amounts of each type of sugar
 
 
 if __name__ == "__main__":
     fg = FoodGenerator()
-    for i in range(200):
-        print(fg.getAvailable())
+    for i in range(10000):
+        if i % 1 == 0:
+            print(fg.getAvailable())

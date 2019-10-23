@@ -18,7 +18,7 @@ def make_basic_bacteria(id):
             'atp' : atp
         }
 
-    bac = Bacteria(id, survival_atp = 1, repro_atp = 3, initial_atp = 20, max_amount_per_step = 2)
+    bac = Bacteria(id, survival_atp = 2, repro_atp = 2, initial_atp = 20, max_amount_per_step = 20)
 
     foods = ('glucose', 'sucrose', 'lactose')
 
@@ -26,7 +26,7 @@ def make_basic_bacteria(id):
         'glucose' : make_all_edge_cfgs(
             make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
             make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
-            make_edge_cfg(0.5, evo_sd = 0.2, scale = 1)
+            make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2, scale = 5)
         ),
         'sucrose': make_all_edge_cfgs(
             make_edge_cfg(0.000000000001, evo_sd = 0.3, atp = 0.2),
@@ -36,7 +36,7 @@ def make_basic_bacteria(id):
         'lactose' : make_all_edge_cfgs(
             make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
             make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
-            make_edge_cfg(0.5, evo_sd = 0.2, scale = 1)
+            make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2, scale = 5)
         )
     }
 
@@ -170,20 +170,12 @@ class Bacteria(object):
     ## Simulation functions: survival and reproduction ##
 
     def is_alive(self):
-        try:
-            #print(self.get_node('atp')['amount'][0])
-            return self.get_node('atp')['amount'][0] >= self.survival_atp
-        except Exception as e:
-            #print(self.get_node('atp')['amount'])
-            return self.get_node('atp')['amount'] >= self.survival_atp
+        return self.get_node('atp')['amount'] >= self.survival_atp
 
     def can_reproduce(self):
-        try:
-            return self.get_node('atp')['amount'][0] >= self.repro_atp
-        except Exception as e:
-            return self.get_node('atp')['amount'] >= self.repro_atp
+        return self.get_node('atp')['amount'] >= self.repro_atp
 
-    def survive(self, food, reset_food = False):
+    def survive(self, food, reset_food = True, reset_nodes = True):
         """
         Determines whether this bacterium will survive in this generation with the given quantities
         of food, and updates the state of the graph.
@@ -195,22 +187,28 @@ class Bacteria(object):
 
         for (food_src, amount) in food.items():
             self.graph.nodes[food_src]['amount'] = amount
-        self.next_timestep()
-        self.next_timestep()
-        self.next_timestep()
 
-        #print(self)
+        self.next_timestep()
 
         # reset food amount
         if reset_food:
             for food_src in food:
                 self.graph.nodes[food_src]['amount'] = 0
 
+        self.next_timestep()
+        self.next_timestep()
         self.last_food = food.copy()
+
+        if reset_nodes:
+            for node in self.graph.nodes:
+                if node == 'atp':
+                    #print(self.graph.nodes[node])
+                    continue
+                self.graph.nodes[node]['amount'] = 0
 
         return self.is_alive()
 
-    def next_timestep(self):
+    def next_timestep(self, penalize = True):
         """
         Increment timestep by 1 and update the graph. The edges in the graph are evaluated
         independently, ie. the amounts are only changed at the end of the timestep.
@@ -226,11 +224,11 @@ class Bacteria(object):
             dest_produced = data['weight'] * min(self.graph.nodes[src]['amount'],
                                                  self.max_amount_per_step) * data['scale']
             increase_by[dest] += dest_produced
+            if penalize:
+                self.graph.nodes['atp']['amount'] -= data['atp_needed'] * max(dest_produced, data['weight'])
+            else:
+                self.graph.nodes['atp']['amount'] -= data['atp_needed'] * dest_produced
 
-            self.graph.nodes['atp']['amount'] -= data['atp_needed'] * dest_produced
-            if self.graph.nodes['atp']['amount'] < 0:
-                self.graph.nodes['atp']['amount'] = 0
-        #print(increase_by)
         # increase the amounts for each node
         for (node, amount) in increase_by.items():
             if amount > 0:

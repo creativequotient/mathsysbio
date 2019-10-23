@@ -17,12 +17,13 @@ simulator = IntSimulator(food_generator=food_source,
 
 print(initial_bacteria)
 
-print(initial_bacteria.get_edge("glucose", "transported_glucose"))
+#print(initial_bacteria.get_edge("glucose", "transported_glucose"))
 
-# initial_bacteria = make_basic_bacteria(1)
+initial_bacteria = make_basic_bacteria(1)
 
-# while True:
-#     simulator.progress()
-#     print(len(simulator.bacteria))
-#     print(simulator.bacteria[0])
-#     input("Continue?")
+#print(initial_bacteria.graph.nodes['atp']['amount'])
+while True:
+    simulator.progress()
+    print(len(simulator.bacteria))
+    print(simulator.bacteria[0])
+    input("Continue?")

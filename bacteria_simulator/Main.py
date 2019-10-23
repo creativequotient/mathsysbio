@@ -42,13 +42,15 @@ def sucrose_stats(bacteria_pop):
     print("Sucrose -> Transported Sucrose {0:.5f} Transported_sucrose -> Enz_Sucrose_Complex {1:.5f} Enz_Sucrose_Complex -> ATP {2:.5f}"
           .format(output[0][0], output[1][0], output[2][0]))
 
+#print(initial_bacteria)
 
 for i in range(10000):
     simulator.progress()
-    #print(i)
     if i % 10 == 0:
+        print("Food available: {}".format(food_source.food))
         print("Generation: {}".format(i))
         print("Population size: {}".format(len(simulator.bacteria)))
         glucose_stats(simulator.bacteria)
         lactose_stats(simulator.bacteria)
         sucrose_stats(simulator.bacteria)
+        input("Continue")
