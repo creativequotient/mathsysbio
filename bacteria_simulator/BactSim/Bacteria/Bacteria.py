@@ -216,14 +216,28 @@ class Bacteria(object):
 
         self.timestep += 1
 
+        # sum of weights of outgoing edges for each node
+        out_weights = {}
+        for (src, dest, weight) in self.graph.edges.data('weight'):
+            if src in out_weights:
+                out_weights[src] += weight
+            else:
+                out_weights[src] = weight
+
         # update the graph
         increase_by = {}
         for (src, dest, data) in self.graph.edges.data():
             if dest not in increase_by:
                 increase_by[dest] = 0
-            dest_produced = data['weight'] * min(self.graph.nodes[src]['amount'],
-                                                 self.max_amount_per_step) * data['scale']
-            increase_by[dest] += dest_produced
+
+            # Not sure if this is a realistic way to distribute the src nodes between multiple products
+            # but at least we don't have to reset all the amounts every generation
+            src_available = self.get_amount(src) * data['weight'] / out_weights[src]
+            src_used = data['weight'] * min(src_available, self.max_amount_per_step)
+            dest_produced = src_used * data['scale']
+
+            self.graph.nodes[src]['amount'] -= src_used # deduct src (substrate) used
+            increase_by[dest] += dest_produced # increase dest (product) synthesized (at the end of timestep)
             if penalize:
                 self.graph.nodes['atp']['amount'] -= data['atp_needed'] * max(dest_produced, data['weight'])
             else:
@@ -420,6 +434,7 @@ if __name__ == '__main__':
     food = {'glucose' : 5, 'sucrose' : 10, 'lactose' : 3}
     print('Food', food)
     print(bac1)
-    for i in range(4):
-        bac1.survive(food)
-        print(bac1)
+    import pprint
+    for i in range(10):
+        bac1.survive(food, reset_nodes = False, reset_food = False)
+        pprint.pprint(bac1.get_all_nodes())
