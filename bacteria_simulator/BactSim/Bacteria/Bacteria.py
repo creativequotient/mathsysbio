@@ -175,7 +175,7 @@ class Bacteria(object):
     def can_reproduce(self):
         return self.get_node('atp')['amount'] >= self.repro_atp
 
-    def survive(self, food, reset_food = True, reset_nodes = True):
+    def survive(self, food, reset_food = False, reset_nodes = False):
         """
         Determines whether this bacterium will survive in this generation with the given quantities
         of food, and updates the state of the graph.
