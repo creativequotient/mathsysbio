@@ -178,10 +178,11 @@ class Bacteria(object):
     def survive(self, food, reset_food = False, reset_nodes = False):
         """
         Determines whether this bacterium will survive in this generation with the given quantities
-        of food, and updates the state of the graph.
+        of food, and updates the state of the graph. Runs 3 timesteps at a time.
 
         :param food:
-        :param reset_food:
+        :param reset_food: (bool) whether to reset food after the first timestep
+        :param reset_nodes: (bool) whether to reset the values of all nodes after the last timestep
         :returns: a bool for whether this bacterium survives or not
         """
 
@@ -212,6 +213,8 @@ class Bacteria(object):
         """
         Increment timestep by 1 and update the graph. The edges in the graph are evaluated
         independently, ie. the amounts are only changed at the end of the timestep.
+
+        :param penalize: (bool) whether to penalize existence of edges which are not used
         """
 
         self.timestep += 1
