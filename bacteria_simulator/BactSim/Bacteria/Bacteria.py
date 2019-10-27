@@ -40,8 +40,7 @@ def make_basic_bacteria(id):
         )
     }
 
-    # TODO: add interactions btw different transporters/enz
-    # assumption : amount of food is limiting, enzymes/transporters are in excess
+    # assumption : quantity of enzymes are constant
     for food in foods:
         # nodes
         transported = 'transported_' + food
@@ -192,6 +191,7 @@ class Bacteria(object):
         self.graph = nx.DiGraph()
         self.graph.add_node('atp', amount=initial_atp)
 
+
     ## Adding nodes and edges ##
 
     def add_node(self, name, initial_amount = 0, description = ''):
@@ -316,7 +316,6 @@ class Bacteria(object):
        
         return self.is_alive()
 
-
     def clone(self, id):
         """
         Clones cell. The generation of the cloned cell increases by 1 from the parent cell.
@@ -382,6 +381,7 @@ class Bacteria(object):
             return self.graph.edges[src, dest]['weight']
         else:
             raise ValueError(f'No edge from {src} to {dest}')
+
 
     ## Getting nodes and edges ##
 
