@@ -54,6 +54,9 @@ def make_basic_bacteria(id):
         bac.add_edge(transported, es_complex, **cfgs[food]['es_complex'])
         bac.add_edge(es_complex, 'atp', **cfgs[food]['atp'])
 
+    # add transported_sucrose -> transported_glucose edge
+    bac.add_edge('transported_sucrose', 'transported_glucose', 0.0000000000001,
+                 lambda w: Evolution(w, 0.2), atp = 0.2)
     return bac
 
 class Bacteria(object):
