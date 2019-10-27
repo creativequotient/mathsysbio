@@ -40,8 +40,7 @@ def make_basic_bacteria(id):
         )
     }
 
-    # TODO: add interactions btw different transporters/enz
-    # assumption : amount of food is limiting, enzymes/transporters are in excess
+    # assumption : quantity of enzymes are constant
     for food in foods:
         # nodes
         transported = 'transported_' + food
@@ -54,6 +53,9 @@ def make_basic_bacteria(id):
         bac.add_edge(transported, es_complex, **cfgs[food]['es_complex'])
         bac.add_edge(es_complex, 'atp', **cfgs[food]['atp'])
 
+    # add transported_sucrose -> transported_glucose edge
+    bac.add_edge('transported_sucrose', 'transported_glucose', 0.0000000000001,
+                 lambda w: Evolution(w, 0.2), atp = 0.2)
     return bac
 
 class Bacteria(object):
@@ -81,6 +83,13 @@ class Bacteria(object):
     See the next 3 sections for a more detailed description.
     - max_amount_per_step (number) : maximum amount of the source node which can be processed
     by each edge in 1 timestep. see the next_timestep() function.
+    - penalize_edges (bool) : whether to penalize existence of redundant edges (see
+    next_timestep function)
+    - survive_num_timesteps (int >= 1) : number of timesteps to run at once in the survive
+    function
+    - survive_reset_nodes (bool) : whether to reset quantities of all nodes, except ATP, at the
+    end of 1 'feeding' (see survive function)
+    - survive_reset_food: (bool) whether to reset food after first timestep (see survive function)
 
     graph
     ------
@@ -132,7 +141,12 @@ class Bacteria(object):
     5. Displaying functions (AKA functions that return strings describing the bacteria)
     """
 
-    def __init__(self, id, survival_atp, repro_atp, initial_atp, max_amount_per_step = 30):
+    def __init__(self, id,
+                 survival_atp, repro_atp, initial_atp,
+                 max_amount_per_step = 30,
+                 penalize_edges = True,
+                 survive_num_timesteps = 3, survive_reset_nodes = False,
+                 survive_reset_food = True):
         """
         Creates a single Bacteria with the given ATP threshold for survival + reproduction
         and initial amount of ATP. Only the ATP node is created
@@ -141,22 +155,43 @@ class Bacteria(object):
         :param survival_atp: minimum ATP needed for survival
         :param repro_atp: minimum ATP needed to reproduce
         :param initial_atp: intial amount of ATP in the cell. Should be greater than 0.
-        :param max_amount_per_step: (default:30) maximum amount of source node which can be processed by each edge in 1 timestep (see next_timestep function)
+
+        Optional parameters:
+        :param max_amount_per_step: (default:30) maximum amount of source node which can be
+        processed by each edge in 1 timestep (see next_timestep function)
+
+        :param penalize_edges: (default: True) whether to penalize existence of redundant edges
+        (see next_timestep function)
+
+        :param survive_num_timesteps: (default: 3. must be int >= 1) number of timesteps to
+        run at once in the survive function
+        :param survive_reset_nodes: (default: False) whether to reset quantities of all nodes,
+        except ATP, at the end of 1 'feeding' (see survive function)
+        :param survive_reset_food: (default: True) whether to reset food after first timestep
+        (see survive function)
         """
 
-        self.graph = nx.DiGraph()
-        self.graph.add_node('atp', amount=initial_atp)
+        # Parameters -> attributes
+        self.id = id
         self.survival_atp = survival_atp
         self.repro_atp = repro_atp
         self.initial_atp = initial_atp
-        self.max_amount_per_step = max_amount_per_step
 
-        self.id = id
+        self.max_amount_per_step = max_amount_per_step
+        self.penalize_edges = penalize_edges
+        self.survive_num_timesteps = survive_num_timesteps
+        self.survive_reset_nodes = survive_reset_nodes
+        self.survive_reset_food = survive_reset_food
+
+        # Other setup
         self.timestep = 0
         self.generation = 0
-
         self.last_food = None
 
+        self.graph = nx.DiGraph()
+        self.graph.add_node('atp', amount=initial_atp)
+
+   
     ## Adding nodes and edges ##
 
     def add_node(self, name, initial_amount = 0, description = ''):
@@ -167,6 +202,7 @@ class Bacteria(object):
             raise ValueError('src or dest node has not been created')
         self.graph.add_edge(src, dest, weight=weight, atp_needed = atp, evolution = make_evolution_cls(weight), scale = scale, description = description)
 
+
     ## Simulation functions: survival and reproduction ##
 
     def is_alive(self):
@@ -175,56 +211,66 @@ class Bacteria(object):
     def can_reproduce(self):
         return self.get_node('atp')['amount'] >= self.repro_atp
 
-    def survive(self, food, reset_food = True, reset_nodes = True):
+    def set_food(self, food, record):
         """
-        Determines whether this bacterium will survive in this generation with the given quantities
-        of food, and updates the state of the graph.
+        Set the food nodes in this bacteria to the given quantities. Used in the survive
+        function.
 
-        :param food:
-        :param reset_food:
-        :returns: a bool for whether this bacterium survives or not
+        :param food: dict of food name to amount
+        :param record: bool for whether to set this cell's `last_food` to the food given
         """
 
         for (food_src, amount) in food.items():
             self.graph.nodes[food_src]['amount'] = amount
+        if record:
+            self.last_food = food.copy()
 
-        self.next_timestep()
-
-        # reset food amount
-        if reset_food:
-            for food_src in food:
-                self.graph.nodes[food_src]['amount'] = 0
-
-        self.next_timestep()
-        self.next_timestep()
-        self.last_food = food.copy()
-
-        if reset_nodes:
-            for node in self.graph.nodes:
-                if node == 'atp':
-                    #print(self.graph.nodes[node])
-                    continue
-                self.graph.nodes[node]['amount'] = 0
-
-        return self.is_alive()
-
-    def next_timestep(self, penalize = True):
+    def reset_nodes(self):
+        """
+        Set the amounts of all nodes, except for ATP, to 0. Used in the survive function.
+        """
+       
+        for node in self.graph.nodes:
+            if node == 'atp':
+                continue
+            self.graph.nodes[node]['amount'] = 0
+   
+    def next_timestep(self):
         """
         Increment timestep by 1 and update the graph. The edges in the graph are evaluated
         independently, ie. the amounts are only changed at the end of the timestep.
+
+        Attributes which can be adjusted in the constructor:
+        - penalize_edges (bool) : whether to penalize existence of edges not being used.
+        - max_amount_per_step (number) : maximum amount of source node (substrate) that can
+        be processed by each edge in 1 timestep
         """
 
         self.timestep += 1
+
+        # sum of weights of outgoing edges for each node
+        out_weights = {}
+        for (src, dest, weight) in self.graph.edges.data('weight'):
+            if src in out_weights:
+                out_weights[src] += weight
+            else:
+                out_weights[src] = weight
 
         # update the graph
         increase_by = {}
         for (src, dest, data) in self.graph.edges.data():
             if dest not in increase_by:
                 increase_by[dest] = 0
-            dest_produced = data['weight'] * min(self.graph.nodes[src]['amount'],
-                                                 self.max_amount_per_step) * data['scale']
-            increase_by[dest] += dest_produced
-            if penalize:
+
+            # Not sure if this is a realistic way to distribute the src nodes between multiple products
+            # but at least we don't have to reset all the amounts every generation
+            src_available = self.get_amount(src) * data['weight'] / out_weights[src]
+            src_used = data['weight'] * min(src_available, self.max_amount_per_step)
+            dest_produced = src_used * data['scale']
+
+            self.graph.nodes[src]['amount'] -= src_used # deduct src (substrate) used
+            increase_by[dest] += dest_produced # increase dest (product) synthesized (at the end of timestep)
+            if self.penalize_edges:
                 self.graph.nodes['atp']['amount'] -= data['atp_needed'] * max(dest_produced, data['weight'])
             else:
                 self.graph.nodes['atp']['amount'] -= data['atp_needed'] * dest_produced
@@ -235,6 +281,42 @@ class Bacteria(object):
                 # it's not possible for a TF to actually decrease the amount of protein
                 # only decrease its rate of production (?)
                 self.graph.nodes[node]['amount'] += amount
+
+    def survive(self, food):
+        """
+        Determines whether this bacterium will survive in this generation with the given
+        quantities of food, and updates the state of the graph.
+
+        Attributes which can be adjusted in the constructor:
+        - survive_num_timesteps (int) : number of timesteps to run in total
+        - survive_reset_food (bool) : whether to reset food after the first timestep
+        - survive_reset_nodes (bool) : whether to reset the values of all nodes after the
+        last timestep
+
+        Alternatively, this function can be overwritten to customize the behavior further.
+        The example at the bottom of this file. Note that this can make the survive_
+        attributes meaningless.
+
+        :param food: dict of food to amount
+        :returns: a bool for whether this bacterium survives or not
+        """
+
+        self.set_food(food, record = True)
+
+        self.next_timestep()
+        # reset food amount
+        if self.survive_reset_food:
+            zero_food = dict.fromkeys(food, 0)
+            self.set_food(zero_food, record = False)
+
+        # run remaining timesteps
+        for i in range(self.survive_num_timesteps -1):
+            self.next_timestep()
+
+        if self.survive_reset_nodes:
+            self.reset_nodes()
+       
+        return self.is_alive()
 
     def clone(self, id):
         """
@@ -270,6 +352,7 @@ class Bacteria(object):
         daughter.evolve()
         return daughter
 
+
     ## Getting node amounts and edge weights ##
 
     def get_amount(self, node):
@@ -300,6 +383,7 @@ class Bacteria(object):
             return self.graph.edges[src, dest]['weight']
         else:
             raise ValueError(f'No edge from {src} to {dest}')
+
 
     ## Getting nodes and edges ##
 
@@ -361,6 +445,7 @@ class Bacteria(object):
                 d[(src,dest)] = copy.deepcopy(data) if copy_attr else data
             return d
 
+
     ## Displaying functions (AKA functions that return strings describing the bacteria) ##
 
     def edges_str(self):
@@ -383,9 +468,20 @@ class Bacteria(object):
             string += '\n'
         return string
 
+    def config_str(self, compact = False):
+        """Return a string describing various setting for this Bacteria"""
+        string = ''
+        for attr in ('survival_atp','repro_atp','initial_atp',
+                     'max_amount_per_step','penalize_edges',
+                     'survive_num_timesteps', 'survive_reset_nodes', 'survive_reset_food'):
+            string += f'{attr}: {self.__dict__[attr]}'
+            string += ', ' if compact else '\n'
+        return string
+
     def __str__(self):
-        string = f'Bacteria {self.id} Generation: {self.generation} Age: {self.timestep}\n' \
-            + f'ATP to survive: {self.survival_atp} ATP to reproduce: {self.repro_atp} Last food: {self.last_food} max_amount_per_step: {self.max_amount_per_step}\n' \
+        string = f'Bacteria {self.id}, generation: {self.generation}, age: {self.timestep}\n' \
+            + self.config_str() \
+            + f'Last food: {self.last_food}\n' \
             + 'NODES\n' \
             + self.nodes_str() \
             + 'EDGES\n' \
@@ -394,8 +490,7 @@ class Bacteria(object):
 
     __repr__ = __str__
 
-
-if __name__ == '__main__':
+def testing():
     bac1 = make_basic_bacteria(1)
     print(bac1)
     print(bac1.get_amount('glucose'))
@@ -420,6 +515,24 @@ if __name__ == '__main__':
     food = {'glucose' : 5, 'sucrose' : 10, 'lactose' : 3}
     print('Food', food)
     print(bac1)
-    for i in range(4):
+    import pprint
+    for i in range(2):
         bac1.survive(food)
-        print(bac1)
+        pprint.pprint(bac1.get_all_nodes())
+
+def overwrite_survive_example(id):
+    """Returns a bacteria with the survive function overwritten (for illustration)"""
+    bac = make_basic_bacteria(id)
+    def custom_survive(self,food):
+        self.set_food(food, record=True)
+        self.next_timestep()
+        self.set_food(dict.fromkeys(food,0),record=False)
+        return self.is_alive()
+    bac.survive = lambda food: custom_survive(bac,food)
+    return bac
+
+if __name__ == '__main__':
+    bac = overwrite_survive_example(1)
+    print(bac)
+    print(bac.survive({'glucose': 10}))
+    print(bac)
