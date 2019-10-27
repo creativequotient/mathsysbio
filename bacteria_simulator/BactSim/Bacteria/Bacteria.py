@@ -191,7 +191,7 @@ class Bacteria(object):
         self.graph = nx.DiGraph()
         self.graph.add_node('atp', amount=initial_atp)
 
-
+   
     ## Adding nodes and edges ##
 
     def add_node(self, name, initial_amount = 0, description = ''):
@@ -294,6 +294,8 @@ class Bacteria(object):
         last timestep
 
         Alternatively, this function can be overwritten to customize the behavior further.
+        The example at the bottom of this file. Note that this can make the survive_
+        attributes meaningless.
 
         :param food: dict of food to amount
         :returns: a bool for whether this bacterium survives or not
@@ -488,7 +490,6 @@ class Bacteria(object):
 
     __repr__ = __str__
 
-
 def testing():
     bac1 = make_basic_bacteria(1)
     print(bac1)
@@ -519,6 +520,19 @@ def testing():
         bac1.survive(food)
         pprint.pprint(bac1.get_all_nodes())
 
+def overwrite_survive_example(id):
+    """Returns a bacteria with the survive function overwritten (for illustration)"""
+    bac = make_basic_bacteria(id)
+    def custom_survive(self,food):
+        self.set_food(food, record=True)
+        self.next_timestep()
+        self.set_food(dict.fromkeys(food,0),record=False)
+        return self.is_alive()
+    bac.survive = lambda food: custom_survive(bac,food)
+    return bac
+
 if __name__ == '__main__':
-    testing()
-   
+    bac = overwrite_survive_example(1)
+    print(bac)
+    print(bac.survive({'glucose': 10}))
+    print(bac)
