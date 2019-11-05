@@ -8,15 +8,17 @@ class IntSimulator(object):
     The remainder is then randomly allocated (at most 1 extra unit of food per bacteria).
     """
 
-    def __init__(self, food_generator, initial_bacteria):
+    def __init__(self, food_generator, initial_bacteria, food_unit = 10):
         """
         Initialize Simulator class
         :param food_generator: FoodGenerator object to output food available at each generation
         :param initial_bacteria: list of initial bacteria
+        :param food_unit: allocate food in mutiples of this number (default: multiples of 10)
         """
         self.food_generator = food_generator
         self.bacteria = initial_bacteria
         self.total_population = len(self.bacteria)
+        self.food_unit = food_unit
 
     def progress(self):
         """
@@ -59,13 +61,15 @@ class IntSimulator(object):
         """Generates food allocation scheme
         "param population_size: number of bacteria to allocate food to
         :returns: dict of sugar to list of food allocated to each bacterium"""
+        food_unit = self.food_unit
         available_food = {}
         for food, quantity in self.food_generator.getAvailable().items():
+            quantity /= food_unit
             min_qty = quantity // population_size
-            lst = [min_qty] * population_size
+            lst = [food_unit * min_qty] * population_size
             get_extra = int(quantity % population_size)
             for i in range(get_extra):
-                lst[i] += 1
+                lst[i] += food_unit
             random.shuffle(lst)
             available_food[food] = lst
         #print(available_food)
@@ -88,9 +92,10 @@ def replicate_multicore(bacteria_pop, cores = 8):
 # ie. from this directory: cd ... && python3 -m BactSim.Simuator.IntSimulator
 if __name__ == '__main__':
     from BactSim.FoodGenerators import StaticGenerator
-    gen = StaticGenerator()
-    simulator = IntSimulator(gen, [])
+    gen = StaticGenerator(food = {'glucose':139,'lactose':100})
+    simulator = IntSimulator(gen, [], 10)
     print(gen.getAvailable().items())
     print(simulator.food_allocation(1))
     print(simulator.food_allocation(2))
     print(simulator.food_allocation(3))
+    print(simulator.food_allocation(4))
