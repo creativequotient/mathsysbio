@@ -18,7 +18,7 @@ def make_basic_bacteria(id):
             'atp' : atp
         }
 
-    bac = Bacteria(id, survival_atp = 2, repro_atp = 2, initial_atp = 20, max_amount_per_step = 20)
+    bac = Bacteria(id, survival_atp = 4, repro_atp = 4, initial_atp = 50, max_amount_per_step = 20, survive_reset_nodes = False, penalize_edges=False)
 
     foods = ('glucose', 'sucrose', 'lactose')
 

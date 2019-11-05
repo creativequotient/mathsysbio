@@ -1,7 +1,7 @@
 import math
 
 
-default_food = {"glucose":100,
+default_food = {"glucose":500,
                 "sucrose":0,
                 "lactose":0}
 

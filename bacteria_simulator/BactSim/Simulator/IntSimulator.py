@@ -25,7 +25,7 @@ class IntSimulator(object):
         Move forward by 1 generation/time-step
         :returns: Update self.bacteria with new population at next time-step
         """
-        if (len(self.bacteria) < 2000):
+        if (len(self.bacteria) < 100):
             new_population = self.replicate()
         else:
             new_population = replicate_multicore(self.bacteria)
@@ -48,7 +48,6 @@ class IntSimulator(object):
         """
         new_population = []
         for bacteria in self.bacteria:
-            #print(bacteria)
             if not bacteria.can_reproduce():
                 continue
             new_population.append(bacteria)
@@ -75,16 +74,34 @@ class IntSimulator(object):
         #print(available_food)
         return available_food
 
-def func(bacteria):
-    if not bacteria.can_reproduce():
-        return [bacteria]
-    else:
-        return [bacteria, bacteria.divide(0)]
+def func(bacteria_pop):
+
+    def __helper(bacteria):
+        if not bacteria.can_reproduce():
+            return [bacteria]
+        else:
+            return [bacteria, bacteria.divide(0)]
+
+    output = []
+
+    for bac in bacteria_pop:
+        for b in __helper(bac):
+            output.append(b)
+
+    return output
+
+def chunk(input, chunks = 8):
+    output = []
+    for i in range(1, chunks + 1):
+        output.append(input[i-1::chunks])
+    return output
 
 def replicate_multicore(bacteria_pop, cores = 8):
     pool = Pool(processes=cores)
-    output = pool.map(func, bacteria_pop)
+    split_pop = chunk(bacteria_pop, chunks = 8)
+    output = pool.map(func, split_pop)
     output = functools.reduce(lambda a, b: a + b, output)
+
     return output
 
 # to run this file as a script:
