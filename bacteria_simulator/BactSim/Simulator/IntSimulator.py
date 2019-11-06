@@ -25,7 +25,7 @@ class IntSimulator(object):
         Move forward by 1 generation/time-step
         :returns: Update self.bacteria with new population at next time-step
         """
-        if (len(self.bacteria) < 100):
+        if (len(self.bacteria) < 10000000):
             new_population = self.replicate()
         else:
             new_population = replicate_multicore(self.bacteria)

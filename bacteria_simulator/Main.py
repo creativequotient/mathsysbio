@@ -13,6 +13,7 @@ from BactSim.FoodGenerators import StaticGenerator
 
 initial_bacteria = make_basic_bacteria(1)
 food_source = StaticGenerator()
+food_source = FoodGenerator()
 simulator = IntSimulator(food_generator=food_source,
                          initial_bacteria=[initial_bacteria],
                          food_unit=1)
@@ -74,4 +75,3 @@ with open('records.tsv', 'w') as file:
         except ZeroDivisionError as e:
             print(f"\nSimulation ended as generation {i}")
             break
-

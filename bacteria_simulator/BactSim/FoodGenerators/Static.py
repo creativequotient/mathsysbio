@@ -1,8 +1,8 @@
 import math
 
 
-default_food = {"glucose":500,
-                "sucrose":0,
+default_food = {"glucose":1000,
+                "sucrose":5000,
                 "lactose":0}
 
 class StaticGenerator(object):

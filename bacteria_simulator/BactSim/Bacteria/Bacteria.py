@@ -29,9 +29,9 @@ def make_basic_bacteria(id):
             make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2, scale = 5)
         ),
         'sucrose': make_all_edge_cfgs(
-            make_edge_cfg(0.000000000001, evo_sd = 0.3, atp = 0.2),
-            make_edge_cfg(0.000000000001, evo_sd = 0.3, atp = 0.2),
-            make_edge_cfg(0.000000000001, evo_sd = 0.3, scale = 1)
+            make_edge_cfg(0.005, evo_sd = 0.3, atp = 0.2),
+            make_edge_cfg(0.005, evo_sd = 0.3, atp = 0.2),
+            make_edge_cfg(0.005, evo_sd = 0.3, atp = 0.2, scale = 5)
         ),
         'lactose' : make_all_edge_cfgs(
             make_edge_cfg(0.5, evo_sd = 0.2, atp = 0.2),
@@ -191,7 +191,7 @@ class Bacteria(object):
         self.graph = nx.DiGraph()
         self.graph.add_node('atp', amount=initial_atp)
 
-   
+
     ## Adding nodes and edges ##
 
     def add_node(self, name, initial_amount = 0, description = ''):
@@ -229,12 +229,12 @@ class Bacteria(object):
         """
         Set the amounts of all nodes, except for ATP, to 0. Used in the survive function.
         """
-       
+
         for node in self.graph.nodes:
             if node == 'atp':
                 continue
             self.graph.nodes[node]['amount'] = 0
-   
+
     def next_timestep(self):
         """
         Increment timestep by 1 and update the graph. The edges in the graph are evaluated
@@ -315,7 +315,7 @@ class Bacteria(object):
 
         if self.survive_reset_nodes:
             self.reset_nodes()
-       
+
         return self.is_alive()
 
     def clone(self, id):

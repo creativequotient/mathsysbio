@@ -72,23 +72,28 @@ def animate(i):
 
     # Figure settings
     pop_ax.clear()
-    pop_ax.set_ylim([0, 750])
+    pop_ax.set_ylim([0, max([*population, *glucose_amt, *lactose_amt, *sucrose_amt]) * 1.1])
     pop_ax.set_title("Population & Food")
 
     glucose_ax.clear()
-    glucose_ax.set_ylim([0, 1])
+    glucose_ax.set_ylim([0, min(max([*glucose_trans, *glucose_enz, *glucose_atp]) * 1.1, 1)])
     glucose_ax.set_title("Glucose Pathway")
 
     lactose_ax.clear()
     lactose_ax.set_ylim([0, 1])
+    lactose_ax.set_ylim([0, min(max([*lactose_trans, *lactose_enz, *lactose_atp]) * 1.1, 1)])
     lactose_ax.set_title("Lactose Pathway")
 
     sucrose_ax.clear()
     sucrose_ax.set_ylim([0, 1])
+    sucrose_ax.set_ylim([0, min(max([*sucrose_trans, *sucrose_enz, *sucrose_atp]) * 1.1, 1)])
     sucrose_ax.set_title("Sucrose Pathway")
 
-    pop_ax.plot(generation, population, "#D55E00")
-    pop_ax.plot(generation, glucose_amt, "#0072B2")
+    pop_ax.plot(generation, population, "#D55E00", linestyle='dashed', label="Population")
+    pop_ax.plot(generation, glucose_amt, "#0072B2", label="Glucse amt")
+    pop_ax.plot(generation, lactose_amt, "#F0E442", label="Lactose amt")
+    pop_ax.plot(generation, sucrose_amt, "#009E73", label="Sucrose amt")
+    pop_ax.legend(loc="bottom left")
 
     glucose_ax.plot(generation, glucose_trans, "#D55E00", label="Transporter")
     glucose_ax.plot(generation, glucose_enz, "#0072B2", label="to Intermediate")
